@@ -729,7 +729,7 @@ lemma refillAddTail_corres:
   "time = time' \<and> amount = amount'
    \<Longrightarrow> corres dc (sc_at sc_ptr)
                  (sc_at' sc_ptr and
-                  (\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' < scRefillMax sc' \<and> std_sc' sc') |< scs_of' s') sc_ptr))
+                  (\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' < scRefillMax sc' \<and> valid_refills' sc') |< scs_of' s') sc_ptr))
                  (refill_add_tail sc_ptr \<lparr>r_time = time, r_amount = amount\<rparr>)
                  (refillAddTail sc_ptr (Refill time' amount'))"
   supply projection_rewrites[simp]
@@ -740,7 +740,7 @@ lemma refillAddTail_corres:
   apply (rule corres_guard_imp)
     apply (rule corres_assert_assume_r)
     apply (rule updateSchedContext_corres_gen[where P=\<top>
-                and P'="(\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' < scRefillMax sc' \<and> std_sc' sc') |< scs_of' s') sc_ptr)"])
+                and P'="(\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' < scRefillMax sc' \<and> valid_refills' sc') |< scs_of' s') sc_ptr)"])
       apply (clarsimp, drule (3) state_relation_sc_relation)
       apply (clarsimp simp: obj_at_simps is_sc_obj)
       apply (rename_tac sc')
@@ -793,7 +793,7 @@ lemma maybeAddEmptyTail_corres:
   "corres dc
           (is_active_sc2 sc_ptr)
                  (sc_at' sc_ptr and
-                  (\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' < scRefillMax sc' \<and> std_sc' sc') |< scs_of' s') sc_ptr))
+                  (\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' < scRefillMax sc' \<and> valid_refills' sc') |< scs_of' s') sc_ptr))
           (maybe_add_empty_tail sc_ptr)
           (maybeAddEmptyTail sc_ptr)" (is "corres _ ?abs ?conc _ _")
   supply projection_rewrites[simp]
@@ -853,7 +853,7 @@ lemma updateRefillHd_corres:
   "\<lbrakk>sc_ptr = scPtr; \<forall>refill refill'. refill = refill_map refill' \<longrightarrow> f refill = (refill_map (f' refill'))\<rbrakk>
    \<Longrightarrow> corres dc
         (sc_at sc_ptr and is_active_sc2 sc_ptr)
-        ((\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' \<le> scRefillMax sc' \<and> std_sc' sc') |< scs_of' s') sc_ptr) and sc_at' sc_ptr)
+        ((\<lambda>s'. ((\<lambda>sc'. valid_refills' sc') |< scs_of' s') sc_ptr) and sc_at' sc_ptr)
         (update_refill_hd sc_ptr f)
         (updateRefillHd scPtr f')"
   supply projection_rewrites[simp]
@@ -862,7 +862,7 @@ lemma updateRefillHd_corres:
   apply (clarsimp simp: update_refill_hd_def updateRefillHd_def)
   apply (rule corres_guard_imp)
     apply (rule updateSchedContext_corres_gen[where P=\<top>
-      and P'="(\<lambda>s'. ((\<lambda>sc'. scRefillCount sc' \<le> scRefillMax sc' \<and> std_sc' sc') |< scs_of' s') sc_ptr) and is_active_sc' scPtr"])
+      and P'="(\<lambda>s'. ((\<lambda>sc'. valid_refills' sc') |< scs_of' s') sc_ptr) and is_active_sc' scPtr"])
       apply (clarsimp, drule (3) state_relation_sc_relation)
       apply (fastforce simp: is_sc_obj obj_at_simps is_active_sc'_def elim!: sc_relation_updateRefillHd)
      apply (fastforce simp: obj_at_simps is_sc_obj dest!: state_relation_sc_replies_relation_sc)
@@ -1199,7 +1199,7 @@ lemma refillUpdate_corres:
   "\<lbrakk>1 < max_refills; valid_refills_number' max_refills (min_sched_context_bits + n)\<rbrakk>
    \<Longrightarrow> corres dc
               ((is_active_sc2 sc_ptr and sc_obj_at n sc_ptr) and (pspace_aligned and pspace_distinct))
-              (\<lambda>s'. ((\<lambda>sc'. std_sc' sc') |< scs_of' s') sc_ptr)
+              (\<lambda>s'. ((\<lambda>sc'. valid_refills' sc') |< scs_of' s') sc_ptr)
               (refill_update sc_ptr period budget max_refills)
               (refillUpdate sc_ptr period budget max_refills)"
   (is "_ \<Longrightarrow> _ \<Longrightarrow> corres _ (?pred and _) ?conc _ _")
@@ -1239,9 +1239,9 @@ lemma refillUpdate_corres:
                  apply (rule_tac P="?pred and ko_at (kernel_object.SchedContext sc n) sc_ptr"
                              and P'="ko_at' sc' sc_ptr
                                      and (\<lambda>s'. objBits sc' = minSchedContextBits + n
-                                                \<and> 0 < scRefillMax sc' \<and> std_sc' sc')"
+                                                \<and> 0 < scRefillMax sc' \<and> valid_refills' sc')"
                         in corres_inst)
-                apply (rule_tac F="0 < scRefillMax sc' \<and> std_sc' sc'
+                apply (rule_tac F="0 < scRefillMax sc' \<and> valid_refills' sc'
                                     \<and> length (scRefills sc') = max_num_refills (min_sched_context_bits + n)"
                         in corres_req)
                   apply clarsimp
@@ -1279,7 +1279,7 @@ lemma refillUpdate_corres:
             apply (rule_tac P="sc_obj_at n sc_ptr and
                               (\<lambda>s. ((\<lambda>sc. sc_refills sc\<noteq> [] \<and> 0 < sc_refill_max sc) |< scs_of s) sc_ptr)"
                        and P'="sc_at' sc_ptr and
-                              (\<lambda>s'. ((\<lambda>ko. 1 < scRefillMax ko \<and> scRefillCount ko = 1 \<and> std_sc' ko)
+                              (\<lambda>s'. ((\<lambda>ko. 1 < scRefillMax ko \<and> scRefillCount ko = 1 \<and> valid_refills' ko)
                                             |< scs_of' s') sc_ptr)"
                    in corres_inst)
             apply (simp add: when_def[symmetric] whenM_def ifM_def bind_assoc split del: if_split)
@@ -1301,7 +1301,7 @@ lemma refillUpdate_corres:
                                         and K (0 < sc_refill_max sc) and K (sc_refills sc \<noteq> [])
                                         and K (valid_sched_context_size n)"
                                 and P'="ko_at' sc' sc_ptr
-                                        and K (1 < scRefillMax sc' \<and> scRefillCount sc' = 1 \<and> std_sc' sc')"
+                                        and K (1 < scRefillMax sc' \<and> scRefillCount sc' = 1 \<and> valid_refills' sc')"
                            in corres_inst)
                     apply (rule_tac F="refill_hd sc = refill_map (refillHd sc')" in corres_req)
                      apply (fastforce dest!: refill_hd_relation)

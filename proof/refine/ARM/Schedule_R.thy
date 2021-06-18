@@ -3538,7 +3538,7 @@ lemma refillReady_corres:
   "corres (=)
       (sc_at sc_ptr and
         (\<lambda>s. ((\<lambda>sc. sc_refills sc \<noteq> [] \<and> 0 < sc_refill_max sc) |< scs_of2 s) sc_ptr))
-      (sc_at' sc_ptr and (\<lambda>s'. ((\<lambda>sc'. std_sc' sc') |< scs_of' s') sc_ptr))
+      (sc_at' sc_ptr and (\<lambda>s'. ((\<lambda>sc'. valid_refills' sc') |< scs_of' s') sc_ptr))
          (get_sc_refill_ready sc_ptr)
           (refillReady sc_ptr)"
   supply getSchedContext_wp[wp del] set_sc'.get_wp[wp del] projection_rewrites[simp]

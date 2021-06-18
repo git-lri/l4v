@@ -1322,15 +1322,6 @@ lemma refills_tl_equal:
   apply (subst wrap_slice_index; clarsimp simp: refillTailIndex_def)
   done
 
-(* A standard (and active) scheduling context should have the following properties. They follow
-   from valid_sched_context' and sc_valid_refills as the following two lemmas show. *)
-abbreviation std_sc' where
-  "std_sc' ko \<equiv> 0 < scRefillCount ko \<and> scRefillMax ko \<le> length (scRefills ko) \<and> scRefillHead ko < scRefillMax ko"
-
-lemma std_sc'_normal:
-  "valid_sched_context' sc' s' \<Longrightarrow> 0 < scRefillMax sc' \<Longrightarrow> 0 < scRefillCount sc' \<Longrightarrow> std_sc' sc'"
-  by (clarsimp simp: valid_sched_context'_def)
-
 lemma sc_valid_refills_scRefillCount:
   "\<lbrakk>sc_valid_refills sc; sc_relation sc n sc'\<rbrakk> \<Longrightarrow> 0 < scRefillCount sc'"
   apply (clarsimp simp: valid_sched_context_def sc_relation_def)
@@ -1355,7 +1346,7 @@ lemma hd_refills_map:
   by (simp add: hd_map hd_wrap_slice)
 
 lemma refill_hd_relation:
-  "sc_relation sc n sc' \<Longrightarrow> std_sc' sc' \<Longrightarrow> refill_hd sc = refill_map (refillHd sc')"
+  "sc_relation sc n sc' \<Longrightarrow> valid_refills' sc' \<Longrightarrow> refill_hd sc = refill_map (refillHd sc')"
   apply (clarsimp simp: sc_relation_def refillHd_def refills_map_def valid_sched_context'_def hd_map)
   apply (subst hd_map, clarsimp simp: wrap_slice_def)
   apply (clarsimp simp: hd_wrap_slice)
@@ -1367,24 +1358,24 @@ lemma refill_hd_relation2:
        \<and> rTime (refillHd sc') = r_time (refill_hd sc)"
   apply (frule refill_hd_relation)
    apply (frule (1) sc_refills_neq_zero_cross[THEN refills_map_non_empty_pos_count])
-   apply (erule std_sc'_normal; simp)
+   apply (simp add: valid_sched_context'_def)
   apply (clarsimp simp: refill_map_def)
   done
 
 lemma sc_refill_ready_relation:
-  "\<lbrakk>sc_relation sc n sc'; std_sc' sc'\<rbrakk> \<Longrightarrow>
+  "\<lbrakk>sc_relation sc n sc'; valid_refills' sc'\<rbrakk> \<Longrightarrow>
   sc_refill_ready time sc = (rTime (refillHd sc') \<le> time + kernelWCETTicks)"
    apply (frule (1) refill_hd_relation)
   by (clarsimp simp: refill_ready_def kernelWCETTicks_def refill_map_def)
 
 lemma sc_refill_capacity_relation:
-  "\<lbrakk>sc_relation sc n sc'; std_sc' sc'\<rbrakk> \<Longrightarrow>
+  "\<lbrakk>sc_relation sc n sc'; valid_refills' sc'\<rbrakk> \<Longrightarrow>
   sc_refill_capacity x sc = refillsCapacity x (scRefills sc') (scRefillHead sc')"
   apply (frule (1) refill_hd_relation)
   by (clarsimp simp: refillsCapacity_def refill_capacity_def refillHd_def refill_map_def)
 
 lemma sc_refill_sufficient_relation:
-  "\<lbrakk>sc_relation sc n sc'; std_sc' sc'\<rbrakk> \<Longrightarrow>
+  "\<lbrakk>sc_relation sc n sc'; valid_refills' sc'\<rbrakk> \<Longrightarrow>
   sc_refill_sufficient x sc = sufficientRefills x (scRefills sc') (scRefillHead sc')"
   apply (frule (1) sc_refill_capacity_relation[where x=x])
   by (clarsimp simp: sufficientRefills_def refill_sufficient_def minBudget_def MIN_BUDGET_def
